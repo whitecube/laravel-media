@@ -1,0 +1,18 @@
+{
+    "name": "whitecube/laravel-media",
+    "description": "Medial library for Laravel, managing model images & assets",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Whitecube\\Media\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Toon Van den Bos",
+            "email": "toon@whitecube.be"
+        }
+    ],
+    "require": {}
+}
