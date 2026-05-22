@@ -2,7 +2,9 @@
 
 namespace Whitecube\Media\Generators\Enums;
 
-enum CropPosition: string
+use Intervention\Image\Alignment;
+
+enum Position: string
 {
     case TopLeft = 'top-left';
     case TopCenter = 'top-center';
@@ -14,4 +16,12 @@ enum CropPosition: string
     case BottomCenter = 'bottom-center';
     case BottomRight = 'bottom-right';
     case Manual = 'manual';
+
+    public function toInterventionAlignment(): ?Alignment
+    {
+        return match ($this) {
+            static::Manual => null,
+            default => Alignment::create($this->value),
+        };
+    }
 }

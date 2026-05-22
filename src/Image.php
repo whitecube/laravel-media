@@ -2,7 +2,7 @@
 
 namespace Whitecube\Media;
 
-use Whitecube\Media\Variant;
+use Whitecube\Media\MediaFile;
 use Whitecube\Media\Attributes\Image as ImageAttribute;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
@@ -11,8 +11,9 @@ class Image
 {
     public function __construct(
         public readonly null|int|string $key,
-        protected ?Variant $original = null,
+        public readonly ?MediaFile $original = null,
         protected array $variants = [],
+        protected ?string $default = null,
         protected ?string $placeholder = null,
     ) {}
 
@@ -22,6 +23,8 @@ class Image
             key: $source?->key(),
             original: $source?->original(),
             variants: $source?->variants($attribute->getVariants()) ?: [],
+            default: $attribute->getDefault(),
+            placeholder: $attribute->getPlaceholder(),
         );
     }
 
@@ -37,10 +40,8 @@ class Image
 
     public function src(?string $variant = null): ?string
     {
-        // TODO : get requested variant
-        // TODO : get default variant
-
-        return $this->original?->url
+        return $this->variant($variant ?: $this->default)?->url()
+            ?? $this->original?->url()
             ?? $this->placeholder;
     }
 
@@ -62,10 +63,32 @@ class Image
         return $fallback;
     }
 
+    public function variant(?string $key): ?MediaFile
+    {
+        if (! $key) {
+            return null;
+        }
+
+        if ($key === $this->original->key) {
+            return $this->original;
+        }
+
+        foreach ($this->variants as $file) {
+            if ($file->key === $key) return $file;
+        }
+
+        return null;
+    }
+
     public function withPlaceholder(?string $placeholder = null): self
     {
         $this->placeholder = $placeholder;
 
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->src();
     }
 }

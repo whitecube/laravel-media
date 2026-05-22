@@ -2,7 +2,9 @@
 
 namespace Whitecube\Media\Repositories;
 
-use Whitecube\Media\Variant;
+use Whitecube\Media\MediaFile;
+use Whitecube\Media\Generators\Variant;
+use Whitecube\Media\Generators\Output;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
 
@@ -11,7 +13,6 @@ class FilesystemMedia implements MediaInterface
     public function __construct(
         protected string $key,
         public readonly string $path,
-        public readonly string $url,
         protected MediaRepository $repository,
     ) {}
 
@@ -20,12 +21,12 @@ class FilesystemMedia implements MediaInterface
         return $this->key;
     }
 
-    public function original(): Variant
+    public function original(): MediaFile
     {
-        return new Variant(
-            key: Variant::KEY_ORIGINAL,
+        return new MediaFile(
+            key: MediaFile::KEY_ORIGINAL,
             path: $this->path,
-            url: $this->url,
+            disk: $this->repository->getDisk($this),
         );
     }
 
@@ -41,14 +42,30 @@ class FilesystemMedia implements MediaInterface
             $key = str_replace(basename($this->key), $output->getFile($this->original(), true), $this->key);
             
             if ($media = $this->repository->find($key)) {
-                $stack[] = new Variant(
+                $stack[] = new MediaFile(
                     key: $generator->key(),
                     path: $media->path,
-                    url: $media->url,
+                    disk: $this->repository->getDisk($this),
                 );
             }
 
             return $stack;
         }, []);
+    }
+
+    public function getGeneratorOutputConfig(Variant $generator): Output
+    {
+        // The filesystem does not store custom variant transformation data.
+        // We'll return the generator's original output configuration.
+        
+        $output = $generator->output()
+            ->disk($this->repository->getDisk($this))
+            ->directory($this->repository->getDirectory($this));
+
+        return Output::config(
+            output: $output,
+            original: $this->original(),
+            key: $generator->key(),
+        );
     }
 }

@@ -11,6 +11,11 @@ class MediaServiceProvider extends ServiceProvider
 {
     public function boot()
     {
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                Console\RegenerateVariants::class,
+            ]);
+        }
     }
 
     public function register()

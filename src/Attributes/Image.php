@@ -5,6 +5,7 @@ namespace Whitecube\Media\Attributes;
 use Whitecube\Media\Image as Media;
 use Whitecube\Media\MediaManager;
 use Whitecube\Media\Generators\Variant;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Image extends Attribute
@@ -13,11 +14,37 @@ class Image extends Attribute
     protected ?string $default = null;
     protected ?string $repository = null;
     protected ?string $placeholder = null;
+    protected null|string|Filesystem $disk = null;
+    protected ?string $directory = null;
 
     public function __construct(?callable $get = null, ?callable $set = null)
     {
         $this->get = fn ($value, $attributes) => $this->getMedia($value, $attributes, $get);
         $this->set = fn ($value, $attributes) => $this->setMedia($value, $attributes, $set);
+    }
+
+    public function disk(null|string|Filesystem $disk = null): self
+    {
+        $this->disk = $disk;
+
+        return $this;
+    }
+
+    public function getDisk(): null|string|Filesystem
+    {
+        return $this->disk;
+    }
+
+    public function directory(?string $directory = null): self
+    {
+        $this->directory = $directory;
+
+        return $this;
+    }
+
+    public function getDirectory(): ?string
+    {
+        return $this->directory;
     }
     
     public function variant(string $classname): self
@@ -45,12 +72,18 @@ class Image extends Attribute
         return $this->variants;
     }
 
-    public function default(string $classname): self
+    public function default(?string $key = null): self
     {
-        $this->default = $classname;
+        $this->default = $key;
 
         return $this;
     }
+
+    public function getDefault(): ?string
+    {
+        return $this->default;
+    }
+
 
     public function repository(?string $classname = null): self
     {
