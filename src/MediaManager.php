@@ -76,6 +76,24 @@ class MediaManager
         );
     }
 
+    public function storeImage(mixed $value, ImageAttribute $attribute): null|int|string
+    {
+        if (is_a($value, Image::class)) {
+            return $value->key;
+        }
+
+        if (! is_string($value) || ! strlen($value)) {
+            return null;
+        }
+
+        // TODO TMP : this is only enough for FilesystemRepository
+        if (($directory = trim($attribute->getDirectory(),'/')) && strpos(ltrim($value,'/'), $directory) === 0) {
+            $value = ltrim(substr(ltrim($value,'/'), strlen($directory)),'/');
+        }
+        
+        return $value;
+    }
+
     public function getMedia(null|int|string $key, MediaRepository $repository): ?MediaInterface
     {
         if (is_null($key) || (is_string($key) && ! strlen($key))) {

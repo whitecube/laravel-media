@@ -134,6 +134,6 @@ class Image extends Attribute
             $value = call_user_func($setter, $value, $attributes);
         }
 
-        return $value;
+        return app(MediaManager::class)->storeImage($value, $this);
     }
 }

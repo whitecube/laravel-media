@@ -69,7 +69,7 @@ class Image
             return null;
         }
 
-        if ($key === $this->original->key) {
+        if ($key === $this->original?->key) {
             return $this->original;
         }
 
@@ -89,6 +89,6 @@ class Image
 
     public function __toString(): string
     {
-        return $this->src();
+        return $this->src() ?: '';
     }
 }
