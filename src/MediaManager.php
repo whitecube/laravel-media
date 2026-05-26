@@ -7,6 +7,7 @@ use Whitecube\Media\Image;
 use Whitecube\Media\Attributes\Image as ImageAttribute;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
+use Whitecube\Media\Jobs\GenerateMediaVariant;
 use Illuminate\Contracts\Filesystem\Factory;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Model;
@@ -15,6 +16,7 @@ use Illuminate\Support\Str;
 class MediaManager
 {
     protected array $register = [];
+    protected array $observed = [];
 
     public function registerModelAttributes(string $classname, array $attributes): self
     {
@@ -67,9 +69,6 @@ class MediaManager
     {
         $repository = $this->getRepository($attribute);
 
-        // $disk = $this->getDiskInstance($attribute, $repository);
-        // $directory = $this->getDirectory($attribute, $repository);
-
         return Image::make(
             source: $this->getMedia($key, $repository),
             attribute: $attribute,
@@ -79,6 +78,7 @@ class MediaManager
     public function storeImage(mixed $value, ImageAttribute $attribute): null|int|string
     {
         if (is_a($value, Image::class)) {
+            $this->observeSavedEvent($value->key, $attribute);
             return $value->key;
         }
 
@@ -90,6 +90,8 @@ class MediaManager
         if (($directory = trim($attribute->getDirectory(),'/')) && strpos(ltrim($value,'/'), $directory) === 0) {
             $value = ltrim(substr(ltrim($value,'/'), strlen($directory)),'/');
         }
+
+        $this->observeSavedEvent($value, $attribute);
         
         return $value;
     }
@@ -130,5 +132,74 @@ class MediaManager
         }
 
         return $disk;
+    }
+
+    public function observeSavedEvent(null|int|string $key, ImageAttribute $mutator): void
+    {
+        if (is_null($key)) {
+            return;
+        }
+
+        $model = $mutator->getModel();
+        $attribute = $mutator->getAttribute();
+        $classname = get_class($model);
+
+        if (! isset($this->observed[$classname])) {
+            $this->observed[$classname] = [];
+        }
+
+        if (! isset($this->observed[$classname][$attribute])) {
+            $this->observed[$classname][$attribute] = [];
+        }
+
+        if (in_array($key, $this->observed[$classname][$attribute])) {
+            return;
+        }
+
+        $classname::saved(fn (Model $model) => $this->runSavedEvent($model, $attribute));
+
+        $this->observed[$classname][$attribute][] = $key;
+    }
+
+    public function runSavedEvent(Model $model, string $attribute): void
+    {
+        $classname = get_class($model);
+        $key = $model->getRawOriginal($attribute);
+
+        if (is_null($key) || (is_string($key) && ! strlen($key)) || ! in_array($key, $this->observed[$classname][$attribute] ?? [])) {
+            return;
+        }
+
+        $mutator = $this->getModelMediaMutator($model, $attribute);
+
+        if (! $mutator) {
+            unset($this->observed[$classname][$attribute]);
+            return;
+        }
+
+        foreach ($mutator->getVariants() as $generator) {
+            GenerateMediaVariant::dispatch($model, $attribute, $generator);
+        }
+
+        $this->unobserve($classname, $attribute, $key);
+    }
+
+    protected function unobserve(string $classname, string $attribute, int|string $key): void
+    {
+        $index = array_search($key, $this->observed[$classname][$attribute] ?? []);
+
+        if ($index === false) {
+            return;
+        }
+
+        unset($this->observed[$classname][$attribute][$index]);
+
+        if (! $this->observed[$classname][$attribute]) {
+            unset($this->observed[$classname][$attribute]);
+        }
+
+        if (! $this->observed[$classname]) {
+            unset($this->observed[$classname]);
+        }
     }
 }

@@ -5,10 +5,11 @@ namespace Whitecube\Media\Jobs;
 use Whitecube\Media\MediaManager;
 use Whitecube\Media\Generators\Variant;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Queue\Queueable;
 
-class GenerateMediaVariant implements ShouldQueue
+class GenerateMediaVariant implements ShouldQueue, ShouldBeUnique
 {
     use Queueable;
 
@@ -20,6 +21,16 @@ class GenerateMediaVariant implements ShouldQueue
         public string $attribute,
         public string|Variant $generator,
     ) {}
+
+    /**
+     * Get the unique ID for the job.
+     */
+    public function uniqueId(): string
+    {
+        $generator = is_string($this->generator) ? $this->generator : get_class($this->generator);
+        $value = $this->model->getRawOriginal($this->attribute);
+        return $generator.':'.$value;
+    }
 
     /**
      * Execute the job.
