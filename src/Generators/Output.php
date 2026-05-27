@@ -6,6 +6,7 @@ use Whitecube\Media\MediaFile;
 use Whitecube\Media\Generators\Enums\Format;
 use Whitecube\Media\Generators\Enums\Position;
 use Whitecube\Media\Generators\Transformations\Fit;
+use Whitecube\Media\Generators\Transformations\Scale;
 use Whitecube\Media\Generators\Transformations\ResizeTransformation;
 use Intervention\Image\Image as InterventionImage;
 use Illuminate\Contracts\Filesystem\Filesystem;
@@ -83,6 +84,14 @@ class Output
             width: $width,
             height: $height,
             position: $position ?? Position::Center
+        ));
+    }
+
+    public function scale(?int $width = null, ?int $height = null): static
+    {
+        return $this->useResize(new Scale(
+            width: $width,
+            height: $height,
         ));
     }
 

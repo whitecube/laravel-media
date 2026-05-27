@@ -231,17 +231,21 @@ The `Output` object provides a few helpers to keep variant filenames and transfo
 return Output::make(Format::Webp)
     ->prefix('generated')
     ->suffix($this->key())
-    ->fit(width: 1200, height: 630)
+    ->scale(width: 630)
     ->useUniqueFilename();
 ```
 
 Available helpers include:
 
-- `prefix()` and `suffix()` to customize generated filenames;
-- `fit()` to resize and crop an image to the given dimensions;
-- `useUniqueFilename()` to generate a random filename;
-- `disk()` and `directory()` to override where the variant should be stored;
-- `store()` to write the generated file and return a `MediaFile`. It currently only supports `intervention/image-laravel` image objects.
+- Filename handling:
+    - `prefix()` and `suffix()` to customize generated filenames;
+    - `useUniqueFilename()` to generate a random filename;
+- Image dimension management:
+    - `fit()` to resize and crop an image to the given dimensions;
+    - `scale()` to resize an image while maintaining the original aspect ratio;
+- File storage management:
+    - `disk()` and `directory()` to override where the variant should be stored;
+    - `store()` to write the generated file and return a `MediaFile`. It currently only supports `intervention/image-laravel` image objects.
 
 The package currently ships with WebP output support, but other common formats will be added (feel free to open a PR).
 
