@@ -3,6 +3,7 @@
 namespace Whitecube\Media\Jobs;
 
 use Whitecube\Media\MediaManager;
+use Whitecube\Media\Contracts\HasMediaAttributes;
 use Whitecube\Media\Generators\Variant;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -17,7 +18,7 @@ class GenerateMediaVariant implements ShouldQueue, ShouldBeUnique
      * Create a new job instance.
      */
     public function __construct(
-        public Model $model,
+        public Model|HasMediaAttributes $model,
         public string $attribute,
         public string|Variant $generator,
     ) {}
@@ -28,8 +29,12 @@ class GenerateMediaVariant implements ShouldQueue, ShouldBeUnique
     public function uniqueId(): string
     {
         $generator = is_string($this->generator) ? $this->generator : get_class($this->generator);
-        $value = $this->model->getRawOriginal($this->attribute);
-        return $generator.':'.$value;
+
+        $key = is_a($this->model, HasMediaAttributes::class)
+            ? $this->model->getMediaKey($this->attribute)
+            : $this->model->getRawOriginal($this->attribute);
+
+        return $generator.':'.$key;
     }
 
     /**
@@ -47,7 +52,12 @@ class GenerateMediaVariant implements ShouldQueue, ShouldBeUnique
         }
 
         $repository = $manager->getRepository($mutator);
-        $media = $repository->find($this->model->getRawOriginal($this->attribute));
+
+        $key = is_a($this->model, HasMediaAttributes::class)
+            ? $this->model->getMediaKey($this->attribute)
+            : $this->model->getRawOriginal($this->attribute);
+
+        $media = $repository->find($key);
 
         if (! $media) {
             return;

@@ -5,6 +5,7 @@ namespace Whitecube\Media;
 use ReflectionMethod;
 use Whitecube\Media\Image;
 use Whitecube\Media\Attributes\Image as ImageAttribute;
+use Whitecube\Media\Contracts\HasMediaAttributes;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
 use Whitecube\Media\Jobs\GenerateMediaVariant;
@@ -36,7 +37,7 @@ class MediaManager
         return array_keys($this->register);
     }
 
-    public function getRegisteredModelMediaMutators(string|Model $model): array
+    public function getRegisteredModelMediaMutators(string|Model|HasMediaAttributes $model): array
     {
         $classname = is_string($model) ? $model : get_class($model);
 
@@ -52,10 +53,14 @@ class MediaManager
         }, []);
     }
 
-    public function getModelMediaMutator(string|Model $model, string $attribute): ?ImageAttribute
+    public function getModelMediaMutator(string|Model|HasMediaAttributes $model, string $attribute): ?ImageAttribute
     {
         $classname = is_string($model) ? $model : get_class($model);
         $model = is_string($model) ? new $model : $model;
+
+        if (is_a($model, HasMediaAttributes::class)) {
+            return $model->getMediaAttribute($attribute);
+        }
 
         try {
             $method = new ReflectionMethod($classname, Str::camel($attribute));

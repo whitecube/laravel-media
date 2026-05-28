@@ -4,6 +4,7 @@ namespace Whitecube\Media\Attributes;
 
 use Whitecube\Media\Image as Media;
 use Whitecube\Media\MediaManager;
+use Whitecube\Media\Contracts\HasMediaAttributes;
 use Whitecube\Media\Generators\Variant;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Image extends Attribute
 {
-    protected Model $model;
+    protected Model|HasMediaAttributes $model;
     protected string $attribute;
     protected array $variants = [];
     protected ?string $default = null;
@@ -20,7 +21,7 @@ class Image extends Attribute
     protected null|string|Filesystem $disk = null;
     protected ?string $directory = null;
 
-    protected function __construct(Model $model, string $attribute, ?callable $get = null, ?callable $set = null)
+    protected function __construct(Model|HasMediaAttributes $model, string $attribute, ?callable $get = null, ?callable $set = null)
     {
         $this->model = $model;
         $this->attribute = $attribute;
@@ -33,12 +34,12 @@ class Image extends Attribute
         throw new \Exception('Image attribute instance should be created using '.static::class.'::attribute($model, $attribute).');
     }
 
-    public static function attribute(Model $model, string $attribute, ?callable $get = null, ?callable $set = null): static
+    public static function attribute(Model|HasMediaAttributes $model, string $attribute, ?callable $get = null, ?callable $set = null): static
     {
         return new static($model, $attribute, $get, $set);
     }
 
-    public function getModel(): Model
+    public function getModel(): Model|HasMediaAttributes
     {
         return $this->model;
     }
