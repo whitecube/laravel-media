@@ -166,10 +166,12 @@ class MediaManager
         $this->observed[$classname][$attribute][] = $key;
     }
 
-    public function runSavedEvent(Model $model, string $attribute): void
+    public function runSavedEvent(Model|HasMediaAttributes $model, string $attribute): void
     {
         $classname = get_class($model);
-        $key = $model->getRawOriginal($attribute);
+        $key = is_a($model, HasMediaAttributes::class)
+            ? $model->getMediaKey($attribute)
+            : $model->getRawOriginal($attribute);
 
         if (is_null($key) || (is_string($key) && ! strlen($key)) || ! in_array($key, $this->observed[$classname][$attribute] ?? [])) {
             return;
