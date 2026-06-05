@@ -8,8 +8,8 @@ use Whitecube\Media\Generators\Enums\Position;
 use Whitecube\Media\Generators\Transformations\Fit;
 use Whitecube\Media\Generators\Transformations\Scale;
 use Whitecube\Media\Generators\Transformations\ResizeTransformation;
+use Whitecube\Media\References\FilesystemReference;
 use Intervention\Image\Image as InterventionImage;
-use Illuminate\Contracts\Filesystem\Filesystem;
 
 class Output
 {
@@ -19,7 +19,7 @@ class Output
         public readonly ?string $suffix = null,
         public readonly bool $rename = false,
         public readonly ?string $directory = null,
-        public readonly null|string|Filesystem $disk = null,
+        public readonly ?FilesystemReference $disk = null,
         public readonly ?ResizeTransformation $resize = null,
         public readonly ?MediaFile $original = null,
         public readonly ?string $key = null,
@@ -53,7 +53,7 @@ class Output
         );
     }
 
-    public function disk(null|string|Filesystem $disk = null): static
+    public function disk(?FilesystemReference $disk = null): static
     {
         return static::duplicate($this, ['disk' => $disk]);
     }
@@ -136,7 +136,7 @@ class Output
         $path = ($this->directory ? $this->directory.'/' : '')
             .$this->getFile($this->original);
 
-        $this->original->disk->put($path, $encoded);
+        $this->original->disk->resolve()->put($path, $encoded);
 
         return new MediaFile(
             key: $this->key,

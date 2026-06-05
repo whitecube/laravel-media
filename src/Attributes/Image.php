@@ -6,6 +6,7 @@ use Whitecube\Media\Image as Media;
 use Whitecube\Media\MediaManager;
 use Whitecube\Media\Contracts\HasMediaAttributes;
 use Whitecube\Media\Generators\Variant;
+use Whitecube\Media\References\FilesystemReference;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +19,7 @@ class Image extends Attribute
     protected ?string $default = null;
     protected ?string $repository = null;
     protected ?string $placeholder = null;
-    protected null|string|Filesystem $disk = null;
+    protected ?FilesystemReference $disk = null;
     protected ?string $directory = null;
 
     protected function __construct(Model|HasMediaAttributes $model, string $attribute, ?callable $get = null, ?callable $set = null)
@@ -49,14 +50,14 @@ class Image extends Attribute
         return $this->attribute;
     }
 
-    public function disk(null|string|Filesystem $disk = null): self
+    public function disk(null|string|Filesystem|FilesystemReference $disk = null): self
     {
-        $this->disk = $disk;
+        $this->disk = $disk ? FilesystemReference::of($disk) : null;
 
         return $this;
     }
 
-    public function getDisk(): null|string|Filesystem
+    public function getDisk(): ?FilesystemReference
     {
         return $this->disk;
     }

@@ -3,9 +3,9 @@
 namespace Whitecube\Media\Repositories;
 
 use Whitecube\Media\Attributes\Image;
+use Whitecube\Media\References\FilesystemReference;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
-use Illuminate\Contracts\Filesystem\Filesystem;
 
 class DatabaseRepository implements MediaRepository
 {
@@ -19,7 +19,7 @@ class DatabaseRepository implements MediaRepository
         return null;
     }
 
-    public function getDisk(?MediaInterface $media = null): null|string|Filesystem
+    public function getDisk(?MediaInterface $media = null): ?FilesystemReference
     {
         return null;
     }

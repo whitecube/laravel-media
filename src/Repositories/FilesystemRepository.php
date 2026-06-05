@@ -4,21 +4,21 @@ namespace Whitecube\Media\Repositories;
 
 use Whitecube\Media\MediaManager;
 use Whitecube\Media\Attributes\Image;
+use Whitecube\Media\References\FilesystemReference;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
-use Illuminate\Contracts\Filesystem\Filesystem;
 
 class FilesystemRepository implements MediaRepository
 {
     public function __construct(
-        protected Filesystem $disk,
+        protected FilesystemReference $disk,
         protected ?string $directory,
     ) {}
 
     static public function make(?Image $mutator): static
     {
         return new static(
-            disk: app(MediaManager::class)->getDiskInstance($mutator),
+            disk: app(MediaManager::class)->getDiskReference($mutator),
             directory: $mutator?->getDirectory(),
         );
     }
@@ -26,8 +26,9 @@ class FilesystemRepository implements MediaRepository
     public function find(int|string $key): ?MediaInterface
     {
         $path = $this->directory ? $this->directory.'/'.ltrim($key,'/') : $key;
+        $disk = $this->disk->resolve();
 
-        if (! $this->disk->exists($path)) {
+        if (! $disk->exists($path)) {
             return null;
         }
 
@@ -40,7 +41,7 @@ class FilesystemRepository implements MediaRepository
         return $media;
     }
 
-    public function getDisk(?MediaInterface $media = null): null|string|Filesystem
+    public function getDisk(?MediaInterface $media = null): ?FilesystemReference
     {
         return $this->disk;
     }

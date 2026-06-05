@@ -6,11 +6,10 @@ use ReflectionMethod;
 use Whitecube\Media\Image;
 use Whitecube\Media\Attributes\Image as ImageAttribute;
 use Whitecube\Media\Contracts\HasMediaAttributes;
+use Whitecube\Media\References\FilesystemReference;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
 use Whitecube\Media\Jobs\GenerateMediaVariant;
-use Illuminate\Contracts\Filesystem\Factory;
-use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -126,17 +125,13 @@ class MediaManager
         return MediaRepository::class;
     }
 
-    public function getDiskInstance(?ImageAttribute $attribute = null, ?MediaRepository $repository = null): Filesystem
+    public function getDiskReference(?ImageAttribute $attribute = null, ?MediaRepository $repository = null): FilesystemReference
     {
         $disk = $attribute?->getDisk()
             ?? $repository?->getDisk()
             ?? config('filesystems.default');
 
-        if (! is_a($disk, Filesystem::class)) {
-            $disk = app(Factory::class)->disk($disk);
-        }
-
-        return $disk;
+        return FilesystemReference::of($disk);
     }
 
     public function observeSavedEvent(null|int|string $key, ImageAttribute $mutator): void
