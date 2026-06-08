@@ -30,7 +30,7 @@ class Image
 
     public function isEmpty(): bool
     {
-        return is_null($this->key);
+        return is_null($this->key) || ! $this->original?->exists();
     }
 
     public function isNotEmpty(): bool
@@ -90,5 +90,20 @@ class Image
     public function __toString(): string
     {
         return $this->src() ?: '';
+    }
+
+    public function delete(): void
+    {
+        $this->deleteVariants();
+        $this->original?->delete();
+    }
+
+    public function deleteVariants(): void
+    {
+        foreach ($this->variants as $file) {
+            $file->delete();
+        }
+
+        $this->variants = [];
     }
 }
