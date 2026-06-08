@@ -20,7 +20,7 @@ class User extends Model
             ])
             ->default('square-regular')
             ->disk('public')
-            ->directory('users');
+            ->path('users');
     }
 }
 ```
@@ -86,7 +86,7 @@ protected function img(): Attribute
 {
     return Image::attribute($this, 'img')
         ->disk('public')
-        ->directory('posts');
+        ->path('posts');
 }
 ```
 
@@ -97,7 +97,7 @@ $post->img = 'cover.webp';
 $post->save();
 ```
 
-When the attribute is configured with `->directory('posts')`, assigning `posts/cover.webp` will automatically be normalized to `cover.webp`.
+When the attribute is configured with `->path('posts')`, assigning `posts/cover.webp` will automatically be normalized to `cover.webp`.
 
 ### Defining variants
 
@@ -113,7 +113,7 @@ protected function img(): Attribute
         ])
         ->default('post-thumbnail')
         ->disk('public')
-        ->directory('posts');
+        ->path('posts');
 }
 ```
 
@@ -244,7 +244,7 @@ Available helpers include:
     - `fit()` to resize and crop an image to the given dimensions;
     - `scale()` to resize an image while maintaining the original aspect ratio;
 - File storage management:
-    - `disk()` and `directory()` to override where the variant should be stored;
+    - `disk()` and `path()` to override where the variant should be stored;
     - `store()` to write the generated file and return a `MediaFile`. It currently only supports `intervention/image-laravel` image objects.
 
 The package currently ships with WebP output support, but other common formats will be added (feel free to open a PR).

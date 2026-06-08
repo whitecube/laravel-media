@@ -3,8 +3,11 @@
 namespace Whitecube\Media;
 
 use ReflectionMethod;
+use Whitecube\Media\File;
 use Whitecube\Media\Image;
+use Whitecube\Media\Attributes\File as FileAttribute;
 use Whitecube\Media\Attributes\Image as ImageAttribute;
+use Whitecube\Media\Attributes\MediaMutator;
 use Whitecube\Media\Contracts\HasMediaAttributes;
 use Whitecube\Media\References\FilesystemReference;
 use Whitecube\Media\Repositories\MediaInterface;
@@ -52,7 +55,7 @@ class MediaManager
         }, []);
     }
 
-    public function getModelMediaMutator(string|Model|HasMediaAttributes $model, string $attribute): ?ImageAttribute
+    public function getModelMediaMutator(string|Model|HasMediaAttributes $model, string $attribute): ?MediaMutator
     {
         $classname = is_string($model) ? $model : get_class($model);
         $model = is_string($model) ? new $model : $model;
@@ -69,20 +72,30 @@ class MediaManager
         }
     }
 
-    public function makeImage(null|int|string $key, ImageAttribute $attribute): Image
+    public function makeFile(null|int|string $key, FileAttribute $mutator): File
     {
-        $repository = $this->getRepository($attribute);
+        return $this->makeMedia($key, $mutator, File::class);
+    }
 
-        return Image::make(
-            source: $this->getMedia($key, $repository),
-            attribute: $attribute,
+    public function makeImage(null|int|string $key, ImageAttribute $mutator): Image
+    {
+        return $this->makeMedia($key, $mutator, Image::class);
+    }
+
+    public function makeMedia(null|int|string $key, MediaMutator $mutator, string $classname): Media
+    {
+        $repository = $this->getRepository($mutator);
+
+        return $classname::make(
+            source: $this->getMediaData($key, $repository),
+            attribute: $mutator,
         );
     }
 
-    public function storeImage(mixed $value, ImageAttribute $attribute): null|int|string
+    public function storeMedia(mixed $value, MediaMutator $mutator): null|int|string
     {
-        if (is_a($value, Image::class)) {
-            $this->observeSavedEvent($value->key, $attribute);
+        if (is_a($value, File::class)) {
+            $this->observeSavedEvent($value->key, $mutator);
             return $value->key;
         }
 
@@ -91,16 +104,16 @@ class MediaManager
         }
 
         // TODO TMP : this is only enough for FilesystemRepository
-        if (($directory = trim($attribute->getDirectory(),'/')) && strpos(ltrim($value,'/'), $directory) === 0) {
-            $value = ltrim(substr(ltrim($value,'/'), strlen($directory)),'/');
+        if (($path = $mutator->getPath()) && strpos(ltrim($value,'/'), $path) === 0) {
+            $value = ltrim(substr(ltrim($value,'/'), strlen($path)),'/');
         }
 
-        $this->observeSavedEvent($value, $attribute);
+        $this->observeSavedEvent($value, $mutator);
         
         return $value;
     }
 
-    public function getMedia(null|int|string $key, MediaRepository $repository): ?MediaInterface
+    public function getMediaData(null|int|string $key, MediaRepository $repository): ?MediaInterface
     {
         if (is_null($key) || (is_string($key) && ! strlen($key))) {
             return null;
@@ -109,15 +122,15 @@ class MediaManager
         return $repository->find($key);
     }
 
-    public function getRepository(?ImageAttribute $attribute): MediaRepository
+    public function getRepository(?MediaMutator $mutator): MediaRepository
     {
-        $repository = $attribute?->getRepository() ?? $this->getDefaultRepository();
+        $repository = $mutator?->getRepository() ?? $this->getDefaultRepository();
 
         if (is_a($repository, MediaRepository::class)) {
             return $repository;
         }
 
-        return $repository::make($attribute);
+        return $repository::make($mutator);
     }
 
     protected function getDefaultRepository(): string
@@ -125,16 +138,16 @@ class MediaManager
         return MediaRepository::class;
     }
 
-    public function getDiskReference(?ImageAttribute $attribute = null, ?MediaRepository $repository = null): FilesystemReference
+    public function getDiskReference(?MediaMutator $mutator = null, ?MediaRepository $repository = null): FilesystemReference
     {
-        $disk = $attribute?->getDisk()
+        $disk = $mutator?->getDisk()
             ?? $repository?->getDisk()
             ?? config('filesystems.default');
 
         return FilesystemReference::of($disk);
     }
 
-    public function observeSavedEvent(null|int|string $key, ImageAttribute $mutator): void
+    public function observeSavedEvent(null|int|string $key, MediaMutator $mutator): void
     {
         if (is_null($key)) {
             return;

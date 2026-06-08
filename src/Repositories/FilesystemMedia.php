@@ -60,7 +60,7 @@ class FilesystemMedia implements MediaInterface
         
         $output = $generator->output()
             ->disk($this->repository->getDisk($this))
-            ->directory($this->repository->getDirectory($this));
+            ->path($this->repository->getPath($this));
 
         return Output::config(
             output: $output,

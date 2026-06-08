@@ -2,14 +2,14 @@
 
 namespace Whitecube\Media\Repositories;
 
-use Whitecube\Media\Attributes\Image;
+use Whitecube\Media\Attributes\MediaMutator;
 use Whitecube\Media\References\FilesystemReference;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
 
 class DatabaseRepository implements MediaRepository
 {
-    static public function make(?Image $mutator): static
+    static public function make(?MediaMutator $mutator): static
     {
         return new static();
     }
@@ -24,7 +24,7 @@ class DatabaseRepository implements MediaRepository
         return null;
     }
 
-    public function getDirectory(?MediaInterface $media = null): ?string
+    public function getPath(?MediaInterface $media = null): ?string
     {
         return null;
     }

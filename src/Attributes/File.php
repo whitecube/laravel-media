@@ -2,13 +2,13 @@
 
 namespace Whitecube\Media\Attributes;
 
-use Whitecube\Media\Image as Media;
+use Whitecube\Media\File as Media;
 use Whitecube\Media\MediaManager;
 
-class Image extends MediaMutator
+class File extends MediaMutator
 {
     public function getMediaValue(mixed $value): Media
     {
-        return app(MediaManager::class)->makeImage($value, $this);
+        return app(MediaManager::class)->makeFile($value, $this);
     }
 }

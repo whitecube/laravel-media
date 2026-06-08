@@ -3,7 +3,7 @@
 namespace Whitecube\Media\Repositories;
 
 use Whitecube\Media\MediaManager;
-use Whitecube\Media\Attributes\Image;
+use Whitecube\Media\Attributes\MediaMutator;
 use Whitecube\Media\References\FilesystemReference;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
@@ -12,20 +12,20 @@ class FilesystemRepository implements MediaRepository
 {
     public function __construct(
         protected FilesystemReference $disk,
-        protected ?string $directory,
+        protected ?string $path,
     ) {}
 
-    static public function make(?Image $mutator): static
+    static public function make(?MediaMutator $mutator): static
     {
         return new static(
             disk: app(MediaManager::class)->getDiskReference($mutator),
-            directory: $mutator?->getDirectory(),
+            path: $mutator?->getPath(),
         );
     }
 
     public function find(int|string $key): ?MediaInterface
     {
-        $path = $this->directory ? $this->directory.'/'.ltrim($key,'/') : $key;
+        $path = $this->path ? $this->path.'/'.ltrim($key,'/') : $key;
         $disk = $this->disk->resolve();
 
         if (! $disk->exists($path)) {
@@ -46,8 +46,8 @@ class FilesystemRepository implements MediaRepository
         return $this->disk;
     }
 
-    public function getDirectory(?MediaInterface $media = null): ?string
+    public function getPath(?MediaInterface $media = null): ?string
     {
-        return $this->directory;
+        return $this->path;
     }
 }
