@@ -24,6 +24,16 @@ class MediaFile
         return $this->disk->resolve()->url($this->path);
     }
 
+    public function exists(): bool
+    {
+        return $this->disk->resolve()->exists($this->path);
+    }
+
+    public function delete(): void
+    {
+        $this->disk->resolve()->delete($this->path);
+    }
+
     public function __get(string $attribute): mixed
     {
         if (! method_exists($this, $attribute)) {
