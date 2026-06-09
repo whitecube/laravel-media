@@ -18,7 +18,7 @@ class Output
         public readonly ?string $prefix = null,
         public readonly ?string $suffix = null,
         public readonly bool $rename = false,
-        public readonly ?string $directory = null,
+        public readonly ?string $path = null,
         public readonly ?FilesystemReference $disk = null,
         public readonly ?ResizeTransformation $resize = null,
         public readonly ?MediaFile $original = null,
@@ -45,7 +45,7 @@ class Output
             prefix: array_key_exists('prefix', $changes) ? $changes['prefix'] : $instance->prefix,
             suffix: array_key_exists('suffix', $changes) ? $changes['suffix'] : $instance->suffix,
             rename: array_key_exists('rename', $changes) ? $changes['rename'] : $instance->rename,
-            directory: array_key_exists('directory', $changes) ? $changes['directory'] : $instance->directory,
+            path: array_key_exists('path', $changes) ? $changes['path'] : $instance->path,
             disk: array_key_exists('disk', $changes) ? $changes['disk'] : $instance->disk,
             resize: array_key_exists('resize', $changes) ? $changes['resize'] : $instance->resize,
             original: array_key_exists('original', $changes) ? $changes['original'] : $instance->original,
@@ -58,9 +58,9 @@ class Output
         return static::duplicate($this, ['disk' => $disk]);
     }
 
-    public function directory(?string $directory = null): static
+    public function path(?string $path = null): static
     {
-        return static::duplicate($this, ['directory' => $directory]);
+        return static::duplicate($this, ['path' => $path]);
     }
 
     public function prefix(?string $prefix = null): static
@@ -133,7 +133,7 @@ class Output
         }
 
         $encoded = $this->encodeImageForStorage($image, $quality);
-        $path = ($this->directory ? $this->directory.'/' : '')
+        $path = ($this->path ? $this->path.'/' : '')
             .$this->getFile($this->original);
 
         $this->original->disk->resolve()->put($path, $encoded);
