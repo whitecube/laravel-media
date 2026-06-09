@@ -5,6 +5,7 @@ namespace Whitecube\Media\Jobs;
 use Whitecube\Media\MediaManager;
 use Whitecube\Media\Contracts\HasMediaAttributes;
 use Whitecube\Media\Generators\Variant;
+use Whitecube\Media\Generators\ConditionalVariant;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Database\Eloquent\Model;
@@ -65,6 +66,10 @@ class GenerateMediaVariant implements ShouldQueue, ShouldBeUnique
 
         if (is_string($this->generator)) {
             $this->generator = app($this->generator, [$this->model]);
+        }
+
+        if ($this->generator instanceof ConditionalVariant && ! $this->generator->shouldApply($media)) {
+            return;
         }
 
         $file = $this->generator->generate(
