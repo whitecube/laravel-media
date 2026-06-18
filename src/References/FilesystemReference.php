@@ -2,6 +2,8 @@
 
 namespace Whitecube\Media\References;
 
+use ReflectionClass;
+use ReflectionProperty;
 use Illuminate\Contracts\Filesystem\Filesystem;
 
 abstract class FilesystemReference
@@ -45,8 +47,16 @@ abstract class FilesystemReference
     public function __serialize(): array
     {
         return array_reduce(
-            get_class_vars(static::class),
-            fn(array $data, string $property) => $data[$property] = $this->$property,
+            (new ReflectionClass($this))->getProperties(ReflectionProperty::IS_PUBLIC),
+            function (array $data, ReflectionProperty $property) {
+                if ($property->isStatic() || ! $property->isInitialized($this)) {
+                    return $data;
+                }
+
+                $data[$property->getName()] = $property->getValue($this);
+
+                return $data;
+            },
             [],
         );
     }
