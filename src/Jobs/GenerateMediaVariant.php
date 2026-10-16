@@ -16,6 +16,11 @@ class GenerateMediaVariant implements ShouldQueue, ShouldBeUnique
     use Queueable;
 
     /**
+     * Discard the job when its model was deleted before the job could be processed.
+     */
+    public bool $deleteWhenMissingModels = true;
+
+    /**
      * Create a new job instance.
      */
     public function __construct(
@@ -31,9 +36,7 @@ class GenerateMediaVariant implements ShouldQueue, ShouldBeUnique
     {
         $generator = is_string($this->generator) ? $this->generator : get_class($this->generator);
 
-        $key = is_a($this->model, HasMediaAttributes::class)
-            ? $this->model->getMediaKey($this->attribute)
-            : $this->model->getRawOriginal($this->attribute);
+        $key = app(MediaManager::class)->getMediaKey($this->model, $this->attribute);
 
         return $generator.':'.$key;
     }
@@ -54,9 +57,11 @@ class GenerateMediaVariant implements ShouldQueue, ShouldBeUnique
 
         $repository = $manager->getRepository($mutator);
 
-        $key = is_a($this->model, HasMediaAttributes::class)
-            ? $this->model->getMediaKey($this->attribute)
-            : $this->model->getRawOriginal($this->attribute);
+        $key = $manager->getMediaKey($this->model, $this->attribute);
+
+        if (is_null($key) || (is_string($key) && ! strlen($key))) {
+            return;
+        }
 
         $media = $repository->find($key);
 

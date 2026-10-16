@@ -99,9 +99,7 @@ class RegenerateVariants extends Command
     protected function handleModelMedia(Model|HasMediaAttributes $model, string $attribute, Image $mutator): void
     {
         $repository = $this->manager->getRepository($mutator);
-        $key = is_a($model, HasMediaAttributes::class)
-            ? $model->getMediaKey($attribute)
-            : $model->getRawOriginal($attribute);
+        $key = $this->manager->getMediaKey($model, $attribute);
 
         if (is_null($key) || (is_string($key) && ! strlen($key)) || ! ($media = $repository->find($key))) {
             return;
