@@ -9,6 +9,7 @@ use Whitecube\Media\Attributes\File as FileAttribute;
 use Whitecube\Media\Attributes\Image as ImageAttribute;
 use Whitecube\Media\Attributes\MediaMutator;
 use Whitecube\Media\Contracts\HasMediaAttributes;
+use Whitecube\Media\Generators\Variant;
 use Whitecube\Media\References\FilesystemReference;
 use Whitecube\Media\Repositories\MediaInterface;
 use Whitecube\Media\Repositories\MediaRepository;
@@ -20,6 +21,7 @@ class MediaManager
 {
     protected array $register = [];
     protected array $observed = [];
+    protected array $listening = [];
 
     public function registerModelAttributes(string $classname, array $attributes): self
     {
@@ -157,46 +159,126 @@ class MediaManager
         $attribute = $mutator->getAttribute();
         $classname = get_class($model);
 
-        if (! isset($this->observed[$classname])) {
-            $this->observed[$classname] = [];
+        if (in_array($key, $this->observed[$classname][$attribute] ?? [])) {
+            return;
         }
 
-        if (! isset($this->observed[$classname][$attribute])) {
-            $this->observed[$classname][$attribute] = [];
-        }
+        $this->listenToSavedEvent($classname, $attribute);
 
-        if (in_array($key, $this->observed[$classname][$attribute])) {
+        $this->observed[$classname][$attribute][] = $key;
+    }
+
+    /**
+     * Register the model's "saved" listener for given attribute. It is only
+     * registered once since it handles all the observed keys, which prevents
+     * listeners from piling up in long-running processes (queue workers, Octane,...).
+     */
+    protected function listenToSavedEvent(string $classname, string $attribute): void
+    {
+        if (isset($this->listening[$classname][$attribute])) {
             return;
         }
 
         $classname::saved(fn (Model $model) => $this->runSavedEvent($model, $attribute));
 
-        $this->observed[$classname][$attribute][] = $key;
+        $this->listening[$classname][$attribute] = true;
     }
 
     public function runSavedEvent(Model|HasMediaAttributes $model, string $attribute): void
     {
         $classname = get_class($model);
-        $key = is_a($model, HasMediaAttributes::class)
-            ? $model->getMediaKey($attribute)
-            : $model->getRawOriginal($attribute);
+        $key = $this->getMediaKey($model, $attribute);
 
         if (is_null($key) || (is_string($key) && ! strlen($key)) || ! in_array($key, $this->observed[$classname][$attribute] ?? [])) {
             return;
         }
 
+        $this->unobserve($classname, $attribute, $key);
+
         $mutator = $this->getModelMediaMutator($model, $attribute);
 
         if (! $mutator) {
-            unset($this->observed[$classname][$attribute]);
             return;
         }
 
-        foreach ($mutator->getVariants() as $generator) {
+        $generators = $this->hasChangedMedia($model, $attribute)
+            ? $mutator->getVariants()
+            : $this->getOutdatedVariants($key, $mutator);
+
+        foreach ($generators as $generator) {
             GenerateMediaVariant::dispatch($model, $attribute, $generator);
         }
+    }
 
-        $this->unobserve($classname, $attribute, $key);
+    /**
+     * Get the media key currently stored in the model's attribute.
+     *
+     * The model's current attributes are used instead of its "original" ones since
+     * the "saved" event is fired before Eloquent syncs them: the original value is
+     * still null for new models, or the previous key when the media was replaced.
+     */
+    public function getMediaKey(Model|HasMediaAttributes $model, string $attribute): null|int|string
+    {
+        if (is_a($model, HasMediaAttributes::class)) {
+            return $model->getMediaKey($attribute);
+        }
+
+        return $model->getAttributes()[$attribute] ?? null;
+    }
+
+    /**
+     * Check if the model's media has been assigned a new key in the save operation
+     * that is being performed. Models implementing HasMediaAttributes may store
+     * their medias elsewhere: in this case, the media is considered unchanged.
+     */
+    protected function hasChangedMedia(Model|HasMediaAttributes $model, string $attribute): bool
+    {
+        if (! is_a($model, Model::class) || ! array_key_exists($attribute, $model->getAttributes())) {
+            return false;
+        }
+
+        return $model->isDirty($attribute);
+    }
+
+    /**
+     * Get the variants of an unchanged media that are missing or older
+     * than the original file (eg. when it was overwritten).
+     */
+    protected function getOutdatedVariants(int|string $key, MediaMutator $mutator): array
+    {
+        $generators = $mutator->getVariants();
+
+        if (! $generators || ! ($media = $this->getRepository($mutator)->find($key))) {
+            return [];
+        }
+
+        $original = $media->original();
+        $variants = $media->variants($generators);
+
+        return array_values(array_filter($generators, function (string|Variant $generator) use ($original, $variants) {
+            $key = (is_string($generator) ? app($generator) : $generator)->key();
+
+            foreach ($variants as $file) {
+                if ($file->key === $key) {
+                    return $this->isOlderThan($file, $original);
+                }
+            }
+
+            return true;
+        }));
+    }
+
+    /**
+     * Check if given file was modified before the reference file. Files
+     * are considered outdated when their disk cannot tell (as before).
+     */
+    protected function isOlderThan(MediaFile $file, MediaFile $reference): bool
+    {
+        try {
+            return $file->lastModified() < $reference->lastModified();
+        } catch (\Throwable) {
+            return true;
+        }
     }
 
     protected function unobserve(string $classname, string $attribute, int|string $key): void

@@ -29,6 +29,11 @@ class MediaFile
         return $this->disk->resolve()->exists($this->path);
     }
 
+    public function lastModified(): int
+    {
+        return $this->disk->resolve()->lastModified($this->path);
+    }
+
     public function delete(): void
     {
         $this->disk->resolve()->delete($this->path);
